@@ -52,20 +52,58 @@ cloudflared --version       # ต้องรู้จักคำสั่ง
 claude --version
 ```
 
+### 🌿 สลับมาสาขา `day2` ก่อนเป็นอันดับแรก
+
+เมื่อวานเราอยู่ที่สาขา `day1` ซึ่งยังไม่มีฐานข้อมูล **ของทั้งหมดของวันนี้อยู่ที่สาขา `day2`**
+
+```bash
+cd line-workflow-workshop-2026
+git checkout day2
+git branch --show-current      # ต้องขึ้นว่า day2
+```
+
+โค้ดของเมื่อวานยังอยู่ครบทุกบรรทัด สาขา `day2` คือสาขา `day1` ที่ถูก **เติมของเข้าไป** ไม่ใช่เขียนใหม่
+อยากให้ผู้เรียนเห็นภาพว่าวันนี้เพิ่มอะไรบ้าง ให้รันคำสั่งนี้เปิดบนจอ
+
+```bash
+git diff --stat day1 day2                              # ภาพรวม: ไฟล์ใหม่ 55 ไฟล์ + แก้ของเดิม 9 ไฟล์
+git diff --name-status day1 day2 | findstr "^M"        # เฉพาะไฟล์ที่ "แก้ต่อ" จากเมื่อวาน (mac/Linux ใช้ grep)
+git diff day1 day2 -- app/src/routes/webhook.ts        # ไฟล์ที่เห็นการต่อยอดชัดที่สุด
+```
+
+ไฟล์ที่ **แก้ต่อจากของเมื่อวาน** มีแค่ 9 ไฟล์ ที่เหลืออีก 55 ไฟล์เป็นของใหม่ล้วน ๆ
+
+| ไฟล์เดิมที่ถูกต่อยอด | วันนี้เติมอะไร |
+| --- | --- |
+| `src/routes/webhook.ts` | บันทึกข้อความกลุ่มลง DB + ดาวน์โหลดไฟล์ + รองรับ unsend |
+| `src/config.ts` | `DATABASE_URL`, ค่าของ Dashboard, ค่าเก็บไฟล์ และตัวตั้งเวลา |
+| `src/index.ts` | EJS + session + เส้นทางของ Dashboard + health ที่นับข้อความในฐานข้อมูล |
+| `src/line/client.ts` | ดึงชื่อสมาชิกกลุ่ม + ดาวน์โหลดไฟล์จาก LINE (blob client) |
+| `src/services/flex.ts` | การ์ดเพิ่มอีก 3 แบบ: สรุปประชุม, เตือนงานค้าง, รายงานยอดขาย |
+
+> 🎓 **จุดสอนที่ใช้เปิดคาบได้ดี:** เปิด `git diff` ของ `webhook.ts` ให้ดูว่าบรรทัดที่เมื่อวานเขียนว่า
+> *"(Day 1 ยังไม่เก็บลงฐานข้อมูล - Workshop 3 ของวันที่ 2 จะเพิ่มส่วนนี้)"* กำลังจะถูกแทนที่ด้วยอะไร
+> ทั้งวันนี้คือการเติมบรรทัดนั้นให้เต็ม
+
 แล้วทดสอบชุดไฟล์ workshop
 
 ```bash
 cd app
-npm install
+npm install                 # ★ ต้องรันซ้ำหลังสลับสาขา (วันนี้ใช้แพ็กเกจเพิ่มอีก 7 ตัว)
 copy .env.example .env      # macOS/Linux ใช้ cp
 npm run db:setup            # ต้องขึ้น "พร้อมใช้งาน"
 npm run dev                 # เปิด http://localhost:3000 ได้
 ```
 
+> ⚠️ **ถ้าขึ้น error หา module `pg` / `ejs` / `express-session` ไม่เจอ** แปลว่าลืม `npm install` หลังสลับสาขา
+> และถ้ามีไฟล์ `.env` จากเมื่อวานอยู่แล้ว (ไม่ถูกลบเพราะอยู่ใน `.gitignore`) ให้เทียบกับ `.env.example`
+> ของสาขานี้แล้วเติมบรรทัดที่ขาด โดยเฉพาะ `DATABASE_URL`
+
 | รายการ | สถานะที่ต้องได้ |
 | --- | --- |
+| สาขา git | `git branch --show-current` ขึ้นว่า `day2` |
 | PostgreSQL 16 | ต่อได้ (ผ่าน Docker หรือติดตั้งลงเครื่อง) |
-| ฐานข้อมูล `linechat` | สร้างแล้วและมีตารางครบ 6 ตาราง + 2 view |
+| ฐานข้อมูล `linechat` | สร้างแล้วและมีตารางครบ 7 ตาราง + 3 view |
 | cloudflared | รันคำสั่งได้ |
 | `/mcp` ใน Claude Code | `line-bot` ยังขึ้น connected จากเมื่อวาน |
 | ไลน์กลุ่มทดสอบ | มีสมาชิก 3-4 คนพร้อมแล้ว (ยังไม่เชิญบอท) |
@@ -227,21 +265,28 @@ CREATE INDEX IF NOT EXISTS idx_msg_sent_at    ON line_messages (sent_at DESC);
 | `sent_at` แยกจาก `created_at` | เวลาที่พูด vs เวลาที่เราบันทึก ต่างกันได้ เช่นตอนระบบล่มแล้ว LINE retry เข้ามาทีหลัง |
 | `TIMESTAMPTZ` ไม่ใช่ `TIMESTAMP` | LINE ส่ง epoch เป็น UTC ถ้าเก็บผิดชนิด รายงาน "ของวันนี้" จะเพี้ยน **7 ชั่วโมง** ในไทย |
 
-**ตารางทั้งหมดในระบบ (6 ตาราง + 2 view)**
+**ตารางทั้งหมดในระบบ (7 ตาราง + 3 view)**
 
 ```
 line_groups (group_id PK)
      │ 1
      ├──── * line_messages   (group_id, line_message_id UNIQUE, sent_at)
      ├──── * group_tasks     (group_id, assignee, task_text, status, source)
-     └──── * group_summaries (group_id, summary_date, summary_text, topics jsonb)
+     ├──── * group_summaries (group_id, summary_date, summary_text, topics jsonb)
+     └──── * media_files     (line_message_id UNIQUE, storage_key, caption, status)
 
 message_logs  (ขาส่งทั้งหมด: target_type/target_id, message_kind, status, sent_by)
 sales_orders  (ข้อมูลธุรกิจจำลองสำหรับ Capstone)
 
 view v_messages_today   ข้อความของวันนี้พร้อมชื่อกลุ่ม (ให้ AI query ง่าย)
 view v_daily_sales      สรุปยอดขายรายวัน/สาขา/ช่องทาง
+view v_media_gallery    ไฟล์ที่เก็บไว้พร้อมชื่อกลุ่ม (เฉพาะที่ status = stored)
 ```
+
+> **หมายเหตุ:** `media_files` กับ `v_media_gallery` เป็นของ **Workshop 6 (โมดูลเสริม)**
+> `npm run db:setup` สร้างให้ทุกครั้งอยู่แล้ว ถ้าไม่ได้สอน Workshop 6 ก็ปล่อยว่างไว้ได้ ไม่กระทบอะไร
+> ส่วนตาราง `user_sessions` จะถูกสร้างอัตโนมัติโดย `connect-pg-simple` เมื่อเปิด `SESSION_IN_DATABASE=true`
+> (ไม่ได้อยู่ในไฟล์ schema)
 
 > 💡 **เคล็ดลับสำหรับ MCP:** การสร้าง `VIEW` ที่ join และ filter ไว้ให้แล้ว ช่วยให้ AI เขียน SQL ถูกตั้งแต่ครั้งแรกมากขึ้น และยังใช้ **จำกัดขอบเขตข้อมูลที่ AI มองเห็น** ได้ด้วย (ให้สิทธิ์เฉพาะ view ไม่ให้ตารางดิบ)
 
@@ -479,7 +524,7 @@ psql -U postgres -d linechat -c "SELECT DISTINCT group_id FROM line_messages;"
 
 ```bash
 cd app
-npm run seed:chat       # ใส่บทสนทนากลุ่มจำลอง 107 ข้อความ
+npm run seed:chat       # ใส่บทสนทนากลุ่มจำลอง 164 ข้อความ ใน 3 กลุ่ม
 npm run dev
 ```
 
