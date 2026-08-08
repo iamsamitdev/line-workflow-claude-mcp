@@ -61,6 +61,12 @@ claude --version
 
 > ⚠️ **ถ้า `node -v` ยังต่ำกว่า v22** ให้ติดตั้งใหม่จาก https://nodejs.org (เลือก LTS ที่เป็น 22 ขึ้นไป) หรือใช้ `nvm-windows` จัดการหลายเวอร์ชัน เรื่องนี้ต้องแก้ให้จบก่อน Module 2 มิฉะนั้นจะทำ Workshop 1 ไม่ได้เลย
 
+### Clone ชุดไฟล์ workshop จาก GitHub
+
+```bash
+git clone https://github.com/iamsamitdev/line-workflow-workshop-2026.git
+```
+
 ### 🌿 สลับชุดไฟล์ให้ตรงกับวันที่เรียน
 
 ชุดไฟล์ workshop แบ่ง git branch ตามวันอบรม โดยโค้ดต่อยอดกันเป็นเส้นเดียว **วันนี้ให้ทุกคนอยู่ที่สาขา `day1`**
@@ -448,7 +454,7 @@ LINE Platform ส่งเข้าเครื่องคุณ
 และใช้ไปแล้วเท่าไหร่ บอกเป็นตัวเลขชัด ๆ
 ```
 
-> ⚠️ **จุดสอนที่สำคัญมาก:** Free plan ส่ง push/broadcast ได้ **200 ข้อความต่อเดือน** และ broadcast 1 ครั้งนับเป็นจำนวนผู้รับ ไม่ใช่ 1 ในองค์กรที่มีพนักงาน 200 คน การ broadcast ครั้งเดียวก็หมดโควต้าเดือนนั้นทันที **ให้ตรวจโควต้าก่อนเสมอ**
+> ⚠️ **จุดสอนที่สำคัญมาก:** Free plan ส่ง push/broadcast ได้ **300 ข้อความต่อเดือน** และ broadcast 1 ครั้งนับเป็นจำนวนผู้รับ ไม่ใช่ 1 ในองค์กรที่มีพนักงาน 200 คน การ broadcast ครั้งเดียวก็หมดโควต้าเดือนนั้นทันที **ให้ตรวจโควต้าก่อนเสมอ**
 
 ---
 
@@ -815,7 +821,7 @@ DESTINATION_USER_ID = "userIdของคุณ"
 | --- | --- |
 | `The property, 'messages[0].text', is required` | ข้อความว่าง มักเกิดตอน AI ส่ง text ที่เป็น empty string |
 | `Invalid reply token` | replyToken ใช้ได้ครั้งเดียวและหมดอายุใน ~1 นาที งานที่ช้าให้ใช้ push แทน reply |
-| `You have reached your monthly limit` | โควต้าหมด (Free plan 200 ข้อความ/เดือน) ตรวจด้วย `get_message_quota` รอเดือนใหม่หรืออัปเกรดแพลน |
+| `You have reached your monthly limit` | โควต้าหมด (Free plan 300 ข้อความ/เดือน) ตรวจด้วย `get_message_quota` รอเดือนใหม่หรืออัปเกรดแพลน |
 | ปุ่ม uri ใน Flex กดไม่ได้ | URL ต้องเป็น **https** เท่านั้น (http ถูกปฏิเสธ) |
 | Flex แสดงผลเพี้ยนหรือไม่ขึ้นเลย | วาง JSON ใน Flex Simulator เพื่อหาจุดผิด มักเป็น property ที่ไม่มีจริงหรือ nesting ผิด |
 | ข้อความ text แสดงดาว `**` ให้เห็น | LINE ไม่รองรับ markdown ต้องบอก AI ว่า "ห้ามใช้ markdown" |
