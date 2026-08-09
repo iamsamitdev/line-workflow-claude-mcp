@@ -1,0 +1,13 @@
+{
+  "env": {
+    "LINE_HR_TOKEN": "<Channel access token ของ HR Notification>",
+    "LINE_SALE_TOKEN": "<Channel access token ของ Sale Notification>",
+    "LINE_SUPPORT_TOKEN": "<Channel access token ของ Support Notification>",
+    "LINE_USER_ID": "<Your user ID ขึ้นต้นด้วย U>"
+  },
+  "enabledMcpjsonServers": [
+    "line-hr",
+    "line-sale",
+    "line-support"
+  ]
+}
