@@ -1,0 +1,45 @@
+{
+  "mcpServers": {
+    "line-hr-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@line/line-bot-mcp-server"
+      ],
+      "env": {
+        "NPM_CONFIG_IGNORE_SCRIPTS": "true",
+        "CHANNEL_ACCESS_TOKEN": "<Channel access token ของ HR Notification>",
+        "DESTINATION_USER_ID": "<Your user ID ขึ้นต้นด้วย U>"
+      }
+    },
+    "line-sale-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@line/line-bot-mcp-server"
+      ],
+      "env": {
+        "NPM_CONFIG_IGNORE_SCRIPTS": "true",
+        "CHANNEL_ACCESS_TOKEN": "<Channel access token ของ Sale Notification>",
+        "DESTINATION_USER_ID": "<Your user ID ขึ้นต้นด้วย U>"
+      }
+    },
+    "line-support-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@line/line-bot-mcp-server"
+      ],
+      "env": {
+        "NPM_CONFIG_IGNORE_SCRIPTS": "true",
+        "CHANNEL_ACCESS_TOKEN": "<Channel access token ของ Support Notification>",
+        "DESTINATION_USER_ID": "<Your user ID ขึ้นต้นด้วย U>"
+      }
+    }
+  },
+  "enabledMcpjsonServers": [
+    "line-hr-mcp-server",
+    "line-sale-mcp-server",
+    "line-support-mcp-server"
+  ]
+}
