@@ -1041,7 +1041,7 @@ codex
 | วิธีตั้งค่า MCP | คำสั่ง `claude mcp add` (หรือแก้ `.mcp.json` เอง) | แก้ไฟล์ `config.toml` เอง (หรือใช้ `codex mcp add`) |
 | ไฟล์ config | `.mcp.json` / `~/.claude.json` | `~/.codex/config.toml` |
 | ตรวจสถานะ MCP | `/mcp` ใน session | `codex mcp list` จาก terminal หรือ `/mcp` ใน session |
-| วิธีเก็บค่าลับที่แนะนำ | `${VAR}` ใน `.mcp.json` | `env_vars = [...]` ใน `config.toml` |
+| วิธีเก็บค่าลับที่แนะนำ | `${VAR}` ใน `.mcp.json` (⚠️ CLI แทนค่าให้ แต่ Desktop ไม่แทน — ต้องใช้สคริปต์ตัวกลาง) | `env_vars = [...]` ใน `config.toml` |
 | คุมสิทธิ์ก่อนเรียก tool | ระบบ permission ของ Claude Code | `default_tools_approval_mode` ใน config |
 | ถามยืนยันก่อนเรียก tool | | |
 | คุณภาพ Flex ที่ออกแบบมา | | |
@@ -1565,6 +1565,27 @@ if ($env:DESTINATION_USER_ID) { "DESTINATION_USER_ID: OK" } else { "DESTINATION_
 ```
 
 ไฟล์แบบนี้ commit ขึ้น git ได้อย่างปลอดภัย เพราะไม่มีค่าลับอยู่ในไฟล์เลย แต่ละคนในทีมต้องตั้ง environment variable ชื่อเดียวกันบนเครื่องตัวเองก่อนเริ่มใช้งาน
+
+> ⚠️ **ข้อจำกัดที่เจอจริงตอนสอน** — syntax `${VAR}` นี้ **Claude Code CLI แทนค่าให้ แต่ Claude Desktop ไม่แทน**
+> Desktop จะส่งข้อความ `${CHANNEL_ACCESS_TOKEN}` ดิบ ๆ เข้าไปเป็น token ทำให้ LINE ตอบ `401 Unauthorized`
+> ทุก Channel พร้อมกัน และ**ปิดเปิดโปรแกรมกี่รอบก็ไม่หาย** เพราะไม่ใช่ปัญหาชั่วคราวตอนเปิดโปรแกรม
+>
+> วิธีแยกให้ชัดว่าใช่อาการนี้ไหม: เอา token ไปยิง API ตรง ๆ ถ้าได้ `200` แปลว่า token ดี ปัญหาอยู่ที่ config
+>
+> ```bash
+> curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: Bearer $LINE_HR_TOKEN" https://api.line.me/v2/bot/info
+> ```
+>
+> ทางแก้ที่ใช้ได้ทั้ง CLI และ Desktop ครบทุก OS คือให้ `.mcp.json` เรียก**สคริปต์ตัวกลาง**ที่อ่าน env
+> เองตอนรัน แทนการพึ่ง `${VAR}` (ตัวอย่างจริงอยู่ที่ [`scripts/line-mcp.js`](../scripts/line-mcp.js) ของโปรเจกต์นี้)
+>
+> ```json
+> "line-hr": {
+>   "type": "stdio",
+>   "command": "node",
+>   "args": ["scripts/line-mcp.js", "LINE_HR_TOKEN"]
+> }
+> ```
 
 **นำไปใช้กับ Codex CLI**
 

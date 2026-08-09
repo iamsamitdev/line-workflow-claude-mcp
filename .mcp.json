@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "line-hr": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["scripts/line-mcp.js", "LINE_HR_TOKEN"]
+    },
+    "line-sale": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["scripts/line-mcp.js", "LINE_SALE_TOKEN"]
+    },
+    "line-support": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["scripts/line-mcp.js", "LINE_SUPPORT_TOKEN"]
+    }
+  }
+}

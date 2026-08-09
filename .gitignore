@@ -5,3 +5,8 @@ Workshop
 PrePostTest
 manual.html
 Pre-course-Setup_LINE-Chatbot-Auto-Workflow-2026.md
+
+# ความลับ — ห้าม commit
+# หมายเหตุ: .mcp.json commit ได้ เพราะอ้าง token ผ่าน environment variable ไม่มีค่าจริงอยู่ข้างใน
+.env
+.claude/settings.local.json
