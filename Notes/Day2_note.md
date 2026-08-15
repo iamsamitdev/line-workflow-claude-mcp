@@ -13,13 +13,13 @@
 
 1. อธิบายสถาปัตยกรรม **4 ส่วน** ของระบบ Auto Workflow ได้ (Webhook ขาเข้า + PostgreSQL หน่วยความจำ + Postgres MCP ขาอ่าน + LINE Bot MCP ขาส่งกลับ)
 2. ออกแบบ **schema ฐานข้อมูล** สำหรับเก็บบทสนทนากลุ่ม และอธิบายเหตุผลของทุกคอลัมน์สำคัญได้
-3. สั่ง Claude Code สร้าง **Webhook Server** (Node.js + Express + TypeScript + @line/bot-sdk) ที่รับข้อความจากไลน์กลุ่มและบันทึกลง PostgreSQL ได้จริง
-4. เปิดระบบในเครื่องสู่อินเทอร์เน็ตด้วย **Cloudflare Tunnel** และตั้งค่า Webhook URL ใน LINE Developers Console ได้
-5. **รีวิวโค้ดที่ AI เขียน** ตามหัวข้อความปลอดภัยและความทนทาน 6 ข้อ ไม่ใช่แค่รันแล้วผ่าน
+3. อ่านและอธิบายการทำงานของ **Webhook Server** (Node.js + Express + TypeScript + @line/bot-sdk) ในชุดไฟล์ที่ clone มา ที่รับข้อความจากไลน์กลุ่มและบันทึกลง PostgreSQL ได้จริง
+4. เปิดระบบในเครื่องสู่อินเทอร์เน็ตด้วย **ngrok** และตั้งค่า Webhook URL ใน LINE Developers Console ได้
+5. **ตรวจโค้ดตามหัวข้อความปลอดภัยและความทนทาน 6 ข้อ** และชี้ได้ว่าโค้ดจัดการแต่ละข้ออย่างไร ไม่ใช่แค่รันแล้วผ่าน
 6. เชื่อม **Postgres MCP** เข้า Claude Code แล้วสั่งวิเคราะห์บทสนทนาด้วยภาษาไทยได้ (สรุปประเด็น หาผู้พูดมากสุด สกัดงานที่มอบหมาย หาประเด็นค้าง)
 7. ส่ง **สรุปประชุมกลับเข้ากลุ่ม** เป็น Flex Message ที่สมาชิกทุกคนเห็นพร้อมกัน
 8. ใช้ **Admin Dashboard** ทำงานเดิมโดยไม่ต้องพิมพ์ prompt เพื่อส่งมอบระบบให้ผู้ใช้ที่ไม่ใช่ Developer
-9. สร้างสคริปต์ **daily-report** ที่ query ยอดขาย ตรวจรายการผิดปกติ (Anomaly Detection) และส่ง Flex เข้ากลุ่มผู้บริหาร พร้อมทดสอบด้วย `--dry-run`
+9. อ่านและใช้งานสคริปต์ **daily-report** ที่ query ยอดขาย ตรวจรายการผิดปกติ (Anomaly Detection) และส่ง Flex เข้ากลุ่มผู้บริหาร พร้อมทดสอบด้วย `--dry-run`
 10. ตั้งเวลารันอัตโนมัติทุกเช้าด้วย **Windows Task Scheduler** และเลือกตัวตั้งเวลาที่เหมาะกับงานได้จาก 5 ทางเลือก (Task Scheduler, cron, in-process scheduler, GitHub Actions, Claude Cloud Routines)
 11. แยกแยะได้ว่า **งานแบบไหนควรสั่ง AI สด งานแบบไหนควรเป็นสคริปต์ตั้งเวลา**
 12. อธิบายแนวปฏิบัติด้าน **Privacy และ Governance** ของการนำข้อมูลแชทและข้อมูลธุรกิจมาประมวลผลด้วย AI
@@ -33,7 +33,7 @@
 | เวลา | นาที | หัวข้อ |
 | ----------- | --- | ------------------------------------------------------------- |
 | 20:30-20:45 | 15 | **Module 3** สถาปัตยกรรม Auto Workflow แบบครบวงจร |
-| 20:45-21:35 | 50 | **Workshop 3** Group Chat Recorder - เก็บแชทกลุ่มลงฐานข้อมูล |
+| 20:45-21:35 | 50 | **Workshop 3** Group Chat Recorder - อ่านโค้ดและเก็บแชทกลุ่มลงฐานข้อมูล |
 | 21:35-22:05 | 30 | **Workshop 4** AI สรุปประชุมกลุ่ม ติดตามงาน และ Admin Dashboard |
 | 22:05-22:15 | 10 | พักเบรก |
 | 22:15-23:00 | 45 | **Workshop 5 (Capstone)** Executive Daily Report - รายงานอัตโนมัติ |
@@ -48,7 +48,7 @@
 ```bash
 node -v                     # v22 ขึ้นไป
 psql --version              # หรือ docker compose ps ต้องเห็น healthy
-cloudflared --version       # ต้องรู้จักคำสั่ง
+ngrok --version             # ต้องรู้จักคำสั่ง
 claude --version
 ```
 
@@ -57,7 +57,7 @@ claude --version
 เมื่อวานเราอยู่ที่สาขา `day1` ซึ่งยังไม่มีฐานข้อมูล **ของทั้งหมดของวันนี้อยู่ที่สาขา `day2`**
 
 ```bash
-cd line-workflow-workshop-2026
+cd line-workflow-app
 git checkout day2
 git branch --show-current      # ต้องขึ้นว่า day2
 ```
@@ -68,7 +68,7 @@ git branch --show-current      # ต้องขึ้นว่า day2
 ```bash
 git diff --stat day1 day2                              # ภาพรวม: ไฟล์ใหม่ 55 ไฟล์ + แก้ของเดิม 9 ไฟล์
 git diff --name-status day1 day2 | findstr "^M"        # เฉพาะไฟล์ที่ "แก้ต่อ" จากเมื่อวาน (mac/Linux ใช้ grep)
-git diff day1 day2 -- app/src/routes/webhook.ts        # ไฟล์ที่เห็นการต่อยอดชัดที่สุด
+git diff day1 day2 -- src/routes/webhook.ts            # ไฟล์ที่เห็นการต่อยอดชัดที่สุด
 ```
 
 ไฟล์ที่ **แก้ต่อจากของเมื่อวาน** มีแค่ 9 ไฟล์ ที่เหลืออีก 55 ไฟล์เป็นของใหม่ล้วน ๆ
@@ -88,7 +88,6 @@ git diff day1 day2 -- app/src/routes/webhook.ts        # ไฟล์ที่�
 แล้วทดสอบชุดไฟล์ workshop
 
 ```bash
-cd app
 npm install                 # ★ ต้องรันซ้ำหลังสลับสาขา (วันนี้ใช้แพ็กเกจเพิ่มอีก 7 ตัว)
 copy .env.example .env      # macOS/Linux ใช้ cp
 npm run db:setup            # ต้องขึ้น "พร้อมใช้งาน"
@@ -104,7 +103,7 @@ npm run dev                 # เปิด http://localhost:3000 ได้
 | สาขา git | `git branch --show-current` ขึ้นว่า `day2` |
 | PostgreSQL 16 | ต่อได้ (ผ่าน Docker หรือติดตั้งลงเครื่อง) |
 | ฐานข้อมูล `linechat` | สร้างแล้วและมีตารางครบ 7 ตาราง + 3 view |
-| cloudflared | รันคำสั่งได้ |
+| ngrok | รันคำสั่งได้ และผูก authtoken แล้ว (`ngrok config add-authtoken ...`) |
 | `/mcp` ใน Claude Code | `line-bot` ยังขึ้น connected จากเมื่อวาน |
 | ไลน์กลุ่มทดสอบ | มีสมาชิก 3-4 คนพร้อมแล้ว (ยังไม่เชิญบอท) |
 | Dashboard | เปิด http://localhost:3000 ล็อกอิน `admin` / `admin1234` ได้ |
@@ -140,7 +139,7 @@ Claude Code ──MCP──► LINE               Claude Code ──?──► �
         │
         ▼
 LINE Platform ──POST──► Webhook Server (Express + @line/bot-sdk)
-   ผ่าน HTTPS (cloudflared)      │ ตรวจ signature แล้วบันทึก
+   ผ่าน HTTPS (ngrok)            │ ตรวจ signature แล้วบันทึก
                                  ▼
                         ┌─────────────────────┐
                         │   PostgreSQL 16     │  ◄── หน่วยความจำของระบบ
@@ -160,7 +159,7 @@ LINE Platform ──POST──► Webhook Server (Express + @line/bot-sdk)
                         กลุ่ม LINE เดิม (push message ด้วย groupId)
 ```
 
-**สี่ส่วนที่จะสร้างวันนี้**
+**4 ส่วนที่จะสร้างวันนี้**
 
 | ส่วน | เทคโนโลยี | หน้าที่ | สร้างใน |
 | --- | --- | --- | --- |
@@ -236,7 +235,7 @@ LINE Platform ──POST──► Webhook Server (Express + @line/bot-sdk)
 psql -U postgres -c "CREATE DATABASE linechat;"
 ```
 
-**Schema หลักที่ใช้เก็บข้อความ** (มีให้แล้วใน `app/sql/01_schema.sql`)
+**Schema หลักที่ใช้เก็บข้อความ** (มีให้แล้วใน `sql/01_schema.sql`)
 
 ```sql
 CREATE TABLE IF NOT EXISTS line_messages (
@@ -283,7 +282,7 @@ view v_daily_sales      สรุปยอดขายรายวัน/สา�
 view v_media_gallery    ไฟล์ที่เก็บไว้พร้อมชื่อกลุ่ม (เฉพาะที่ status = stored)
 ```
 
-> **หมายเหตุ:** `media_files` กับ `v_media_gallery` เป็นของ **Workshop 6 (โมดูลเสริม)**
+> **หมายเหตุ:** `media_files` กับ `v_media_gallery` เป็นของ **[Workshop 6 (โมดูลเสริม) เรื่องเก็บรูปและไฟล์เอกสารจากกลุ่ม](#-workshop-6-โมดูลเสริม-เก็บรูปและไฟล์เอกสารจากกลุ่มไว้ที่เซิร์ฟเวอร์ของเรา)**
 > `npm run db:setup` สร้างให้ทุกครั้งอยู่แล้ว ถ้าไม่ได้สอน Workshop 6 ก็ปล่อยว่างไว้ได้ ไม่กระทบอะไร
 > ส่วนตาราง `user_sessions` จะถูกสร้างอัตโนมัติโดย `connect-pg-simple` เมื่อเปิด `SESSION_IN_DATABASE=true`
 > (ไม่ได้อยู่ในไฟล์ schema)
@@ -293,62 +292,54 @@ view v_media_gallery    ไฟล์ที่เก็บไว้พร้อ�
 รันจริง:
 
 ```bash
-cd app
 npm run db:setup
 ```
 
 ---
 
-### Part C: ให้ Claude Code เขียน Webhook Server (25 นาที)
+### Part C: อ่านโค้ด Webhook Server จากชุดไฟล์ที่ clone มา (25 นาที)
 
-#### C1. เตรียมโปรเจกต์
+> 🎓 **แนวทางของ Part นี้:** เราไม่สั่ง AI เขียนใหม่จากศูนย์ เพราะเวลาในคลาสสั้นและผลลัพธ์ที่ AI เขียนจะไม่เหมือนกันทุกคน จนพากันไปติดคนละจุด **เราจะอ่านโค้ดจริงที่ทำงานได้แล้วในสาขา `day2` แทน** ซึ่งได้ประโยชน์มากกว่า คือผู้เรียนเห็น "โค้ดที่ถูก" ก่อน แล้วค่อยรู้ว่าทำไมมันถูก
+
+#### C1. เปิดไฟล์หลัก 4 ไฟล์ที่ต้องรู้จัก
 
 ```bash
-mkdir line-chat-recorder
-cd line-chat-recorder
-claude
+code .        # หรือเปิดด้วย editor ที่ถนัด
 ```
 
-#### C2. Prompt สร้าง Webhook Server (copy ใช้ได้ทันที)
+| ไฟล์ | หน้าที่ | จุดที่ต้องดู |
+| --- | --- | --- |
+| `src/routes/webhook.ts` | รับ event จาก LINE | การตอบ 200, การตรวจ signature, การแยก event type |
+| `src/db.ts` | คุยกับ PostgreSQL | `saveMessage()` และการกันข้อมูลซ้ำ |
+| `src/line/client.ts` | เรียก LINE API | `getGroupMemberProfile()` ดึงชื่อผู้ส่ง |
+| `src/config.ts` | อ่านค่าจาก `.env` | ค่าที่ต้องกรอกจริงมีอะไรบ้าง |
 
-```
-สร้าง webhook server สำหรับ LINE Messaging API ด้วย Node.js + Express + TypeScript
-ไม่ใส่ semicolon ท้ายบรรทัด และเขียน comment ภาษาไทยอธิบายจุดสำคัญ
+**กรอกค่าจริงใน `.env` ก่อนรัน**
 
-หน้าที่หลัก
-1. POST /webhook รับ event จาก LINE
-   - ตรวจ signature ด้วย channel secret ผ่าน middleware ของ @line/bot-sdk
-   - สนใจเฉพาะ event type "message" ที่มาจากกลุ่ม (source.type === "group")
-   - ถ้าเป็นข้อความ text ให้ดึงชื่อผู้ส่งด้วย getGroupMemberProfile
-     แล้วบันทึกลง PostgreSQL ตาราง line_messages (ฐานข้อมูล linechat)
-     ตาม schema ในไฟล์ sql/01_schema.sql ที่ผมจะวางให้
-   - ถ้าเป็น type อื่น (sticker, image) ให้บันทึกเฉพาะ metadata ไม่มี message_text
-   - ใช้ ON CONFLICT (line_message_id) DO NOTHING กันข้อมูลซ้ำ
-2. GET /health ตอบ { status: "ok", messagesStored: จำนวนแถวในตาราง }
-3. event type "join" (บอทถูกเชิญเข้ากลุ่ม) ให้ reply ข้อความแนะนำตัวและแจ้งว่า
-   จะเริ่มบันทึกบทสนทนาตั้งแต่นี้ไป และมองข้อความก่อนหน้าไม่เห็น
-4. event type "leave" ให้ log ว่าออกจากกลุ่มแล้ว
-
-ข้อกำหนดทางเทคนิค
-- ใช้ @line/bot-sdk เวอร์ชันล่าสุด และ pg
-- อ่าน config จาก .env: CHANNEL_ACCESS_TOKEN, CHANNEL_SECRET, DATABASE_URL, PORT (default 3000)
-- สร้าง .env.example และเพิ่ม .env ลง .gitignore
-- webhook ต้องตอบ 200 เสมอแม้ฐานข้อมูลจะพัง (log error ไว้)
-  เพราะถ้าตอบ error ซ้ำ ๆ LINE จะหยุดส่ง event มาให้
-- ห้ามใช้ express.json() ครอบ route /webhook เพราะ middleware ต้องอ่าน raw body
-- แยกไฟล์เป็น src/index.ts, src/config.ts, src/db.ts ให้อ่านง่าย
-- log ทุกข้อความที่บันทึกลง console แบบอ่านง่าย
-
-ติดตั้ง dependencies ให้เรียบร้อยและบอกวิธีรัน
+```bash
+copy .env.example .env      # macOS/Linux ใช้ cp
 ```
 
-จากนั้นวางไฟล์ `sql/01_schema.sql` ลงโปรเจกต์ และกรอกค่าจริงใน `.env`
+ค่าที่ต้องมีจริงในวันนี้คือ `CHANNEL_ACCESS_TOKEN`, `CHANNEL_SECRET`, `DATABASE_URL` และ `PORT` (ค่าเริ่มต้น 3000)
 
 > ⚠️ **Channel secret อยู่ที่ tab Basic settings ไม่ใช่ tab Messaging API** (คนละค่ากับ access token) ถ้าใส่ผิดจะขึ้น `signature validation failed`
 
+#### C2. สิ่งที่ Webhook Server ตัวนี้ทำได้ (ไล่ดูทีละข้อในโค้ด)
+
+| ความสามารถ | ดูที่ไหน |
+| --- | --- |
+| `POST /webhook` ตรวจ signature ด้วย channel secret ผ่าน middleware ของ `@line/bot-sdk` | `src/routes/webhook.ts` |
+| สนใจเฉพาะ event `message` ที่มาจากกลุ่ม (`source.type === 'group'`) | `handleEvent()` |
+| ข้อความ text ดึงชื่อผู้ส่งด้วย `getGroupMemberProfile` แล้วบันทึกลงตาราง `line_messages` | `src/line/client.ts` + `src/db.ts` |
+| type อื่น (sticker, image) บันทึกเฉพาะ metadata ไม่มี `message_text` (การดึงตัวไฟล์จริงอยู่ใน Workshop 6) | `handleEvent()` |
+| กันข้อมูลซ้ำด้วย `ON CONFLICT (line_message_id) DO NOTHING` | `saveMessage()` |
+| `GET /health` ตอบ `{ status: 'ok', messagesStored: จำนวนแถว }` | `src/index.ts` |
+| event `join` reply ข้อความแนะนำตัวและแจ้งเรื่องการบันทึก | `handleEvent()` |
+| event `leave` log ว่าออกจากกลุ่มแล้ว | `handleEvent()` |
+
 #### C3. กฎเหล็ก 3 ข้อของ Webhook LINE
 
-ก่อนดูโค้ดที่ AI เขียน ให้จำ 3 ข้อนี้ให้ขึ้นใจ
+ก่อนไล่อ่านโค้ด ให้จำ 3 ข้อนี้ให้ขึ้นใจ แล้วหาให้เจอว่าโค้ดทำตามแต่ละข้ออย่างไร
 
 ```
 กฎข้อ 1: ต้องตอบ 200 เสมอ
@@ -361,7 +352,7 @@ claude
          signature คำนวณจาก raw body ถ้ามีตัวแปลง JSON มาก่อน จะพังทันที
 ```
 
-**โค้ดจริงจากชุด workshop (`app/src/routes/webhook.ts`) ที่ทำถูกทั้ง 3 ข้อ**
+**โค้ดจริงจากชุด workshop (`src/routes/webhook.ts`) ที่ทำถูกทั้ง 3 ข้อ**
 
 ```typescript
 export function createWebhookRouter(): Router {
@@ -446,49 +437,46 @@ export async function saveMessage(record: MessageRecord): Promise<'inserted' | '
 
 > ⚠️ **เกร็ดเชิงเทคนิคที่พบจากการทดสอบจริง:** `ON CONFLICT DO NOTHING` คู่กับ `RETURNING` **จะไม่คืนแถวเมื่อชนกัน** ดังนั้นต้องเช็คด้วย `result.rowCount` จึงจะแยกได้ว่า "บันทึกใหม่" หรือ "ข้ามเพราะซ้ำ"
 
-#### C4. Prompt ตรวจงาน AI (ขั้นตอนที่คนมักข้าม)
+#### C4. 6 คำถามตรวจโค้ด (ขั้นตอนที่คนมักข้าม)
 
-```
-ช่วยรีวิวโค้ดที่เพิ่งเขียนตามหัวข้อนี้ ตอบเป็นข้อ ๆ ว่าทำครบหรือไม่ ถ้าไม่ครบให้แก้ให้
-1. ถ้าฐานข้อมูลล่ม /webhook ยังตอบ 200 หรือไม่
-2. ถ้า signature ไม่ถูกต้อง จะตอบ status อะไร
-3. express.json() ถูกวางไว้ครอบ /webhook หรือเปล่า
-4. ถ้า getGroupMemberProfile ล้มเหลว ข้อความยังถูกบันทึกอยู่ไหม
-5. ถ้า LINE ส่ง event เดิมซ้ำ จะเกิดข้อมูลซ้ำในตารางหรือไม่
-6. มีการ log ค่า token หรือ secret ออก console ที่ไหนบ้าง (ถ้ามีต้องเอาออก)
-```
+ให้ผู้เรียนหาคำตอบ **จากโค้ดจริง** ทีละข้อ บอกได้ด้วยว่าอยู่ไฟล์ไหน บรรทัดประมาณไหน
 
-> 🎓 **จุดสอนที่สำคัญมาก:** นี่คือขั้นตอนที่แยก "คนที่ใช้ AI เป็น" ออกจาก "คนที่ใช้ AI แล้วเสี่ยง" การให้ AI **ตรวจงานตัวเองด้วยหัวข้อที่เรากำหนด** ได้ผลดีกว่าการถามลอย ๆ ว่า "โค้ดนี้ดีไหม" มาก เพราะเราคือคนที่รู้ว่าอะไรสำคัญในบริบทของเรา
+| # | คำถาม | คำตอบที่ควรได้ และดูที่ไหน |
+| --- | --- | --- |
+| 1 | ถ้าฐานข้อมูลล่ม `/webhook` ยังตอบ 200 หรือไม่ | ตอบ เพราะ `res.status(200).end()` ถูกเรียกก่อนแตะ DB (`src/routes/webhook.ts`) |
+| 2 | ถ้า signature ไม่ถูกต้อง จะตอบ status อะไร | 401 จาก middleware ของ `@line/bot-sdk` ก่อนเข้า handler ของเรา |
+| 3 | `express.json()` ถูกวางไว้ครอบ `/webhook` หรือเปล่า | ไม่ ใช้เฉพาะตอนที่ยังไม่ได้ตั้ง `CHANNEL_SECRET` เท่านั้น (ดูตัวแปร `verifier`) |
+| 4 | ถ้า `getGroupMemberProfile` ล้มเหลว ข้อความยังถูกบันทึกอยู่ไหม | ยังบันทึก แต่ `display_name` จะเป็น null (`src/line/client.ts`) |
+| 5 | ถ้า LINE ส่ง event เดิมซ้ำ จะเกิดข้อมูลซ้ำในตารางหรือไม่ | ไม่ เพราะ `ON CONFLICT (line_message_id) DO NOTHING` (`saveMessage()`) |
+| 6 | มีการ log ค่า token หรือ secret ออก console ที่ไหนบ้าง | ไม่มี ลองค้นด้วย `grep -rn "CHANNEL_ACCESS_TOKEN" src/` เพื่อยืนยัน |
 
-#### C5. เปิด Webhook สู่โลกภายนอกด้วย Cloudflare Tunnel
+> 🎓 **จุดสอนที่สำคัญมาก:** 6 ข้อนี้คือ **checklist ที่ใช้ตรวจโค้ดของใครก็ได้** ไม่ว่าจะเป็นโค้ดที่ AI เขียน เพื่อนร่วมทีมเขียน หรือโค้ดเก่าในบริษัท ทักษะที่แท้จริงไม่ใช่การเขียนโค้ดให้เร็ว แต่คือ **การรู้ว่าต้องตรวจอะไรบ้าง** เพราะเราคือคนที่รู้ว่าอะไรสำคัญในบริบทของเรา
+>
+> 💡 **ต่อยอดในคลาสได้ถ้าเวลาเหลือ:** ให้ผู้เรียนเปิด `claude` ในโฟลเดอร์โปรเจกต์ แล้วถามด้วย 6 ข้อนี้ เพื่อเทียบว่าคำตอบของ AI ตรงกับที่ตัวเองอ่านเจอหรือไม่ ตรงไหนที่ AI ตอบผิดคือจุดที่น่าสนใจที่สุด
+
+#### C5. เปิด Webhook สู่โลกภายนอกด้วย ngrok
 
 ```bash
-npm run dev                                      # terminal 1
-cloudflared tunnel --url http://localhost:3000   # terminal 2
+npm run dev              # terminal 1
+ngrok http 3000          # terminal 2
 ```
 
-cloudflared จะพิมพ์ URL ออกมาในกรอบ เช่น `https://xxxx-yyyy-zzzz.trycloudflare.com`
+ngrok จะพิมพ์บรรทัด `Forwarding` ออกมา เช่น `https://xxxx-yyyy-zzzz.ngrok-free.app -> http://localhost:3000`
 
 จากนั้น
 1. ไปที่ LINE Developers Console > tab **Messaging API** > **Webhook URL**
-2. ใส่ `https://xxxx-yyyy-zzzz.trycloudflare.com/webhook` (อย่าลืม `/webhook` ต่อท้าย)
+2. ใส่ `https://xxxx-yyyy-zzzz.ngrok-free.app/webhook` (อย่าลืม `/webhook` ต่อท้าย)
 3. กด **Verify** ต้องขึ้น Success
 4. เปิดสวิตช์ **Use webhook**
 
 > ⚠️ **ข้อควรรู้ 2 ข้อ**
-> 1. URL แบบ quick tunnel **เปลี่ยนทุกครั้งที่ปิดแล้วเปิดใหม่** ต้องกลับมาแก้ใน Console ทุกครั้ง ดังนั้น **เปิด tunnel ทิ้งไว้ตลอดคาบ อย่าปิด**
-> 2. ถ้าถนัด ngrok ใช้ได้ (`ngrok http 3000`) แต่แพลนฟรีปี 2026 จำกัด session ละ 2 ชั่วโมง ต้องต่อใหม่กลางคาบและ URL จะเปลี่ยนอีกครั้ง
+> 1. URL ของ ngrok **เปลี่ยนทุกครั้งที่ปิดแล้วเปิดใหม่** ต้องกลับมาแก้ใน Console ทุกครั้ง ดังนั้น **เปิด ngrok ทิ้งไว้ตลอดคาบ อย่าปิด**
+> 2. ถ้ายังไม่ได้ผูก authtoken จะรันไม่ผ่าน ให้รัน `ngrok config add-authtoken <AUTHTOKEN_ของคุณ>` หนึ่งครั้งก่อน (ดู token ที่ https://dashboard.ngrok.com)
 
-**ทำให้ URL คงที่ (ทำครั้งเดียว ใช้ได้ตลอด สำหรับผู้ที่มีโดเมนอยู่บน Cloudflare)**
+**เครื่องมือช่วยดีบักที่ควรเปิดคู่กันตลอดคาบ**
 
-```bash
-cloudflared tunnel login
-cloudflared tunnel create line-workshop
-cloudflared tunnel route dns line-workshop line.yourdomain.com
-cloudflared tunnel run --url http://localhost:3000 line-workshop
-```
-
-จากนั้น Webhook URL จะเป็น `https://line.yourdomain.com/webhook` ตลอดไป ไม่ต้องแก้ใน Console อีก
+เปิด http://127.0.0.1:4040 ในเบราว์เซอร์ จะเห็นทุก request ที่ LINE ยิงเข้ามา ทั้ง header (`x-line-signature`) และ body แบบ JSON เต็ม ๆ
+ถ้ากด Verify ไม่ผ่าน ให้ดูหน้านี้ก่อนเสมอ ว่า request มาถึงเครื่องเราจริงหรือไม่ และเราตอบ status อะไรกลับไป
 
 #### C6. ทดสอบเก็บข้อความจริง (10 นาที) - ช่วงที่สนุกที่สุด
 
@@ -523,7 +511,6 @@ psql -U postgres -d linechat -c "SELECT DISTINCT group_id FROM line_messages;"
 ชุดไฟล์ workshop มีทางเลือกให้เรียนต่อได้ทันที ไม่ต้องรอแก้ปัญหา LINE
 
 ```bash
-cd app
 npm run seed:chat       # ใส่บทสนทนากลุ่มจำลอง 164 ข้อความ ใน 3 กลุ่ม
 npm run dev
 ```
@@ -548,6 +535,7 @@ npm run dev
 - [ ] `SELECT COUNT(*) FROM line_messages` ได้เลขที่เพิ่มขึ้นจริง
 - [ ] จด groupId ไว้แล้ว
 - [ ] อธิบายได้ว่าทำไม webhook ต้องตอบ 200 เสมอ
+- [ ] ชี้ได้ว่ากฎเหล็ก 3 ข้ออยู่ตรงไหนใน `src/routes/webhook.ts`
 
 ---
 
@@ -673,7 +661,7 @@ altText: "สรุปประชุมกลุ่มวันนี้"
 แสดง JSON ให้ผมตรวจก่อน แล้วส่งเข้ากลุ่มด้วย push_flex_message
 ```
 
-**เทียบกับโค้ดจริงในชุด workshop** เปิดไฟล์ `app/src/services/flex.ts` ดูฟังก์ชัน `flexDailySummary()`
+**เทียบกับโค้ดจริงในชุด workshop** เปิดไฟล์ `src/services/flex.ts` ดูฟังก์ชัน `flexDailySummary()`
 
 ```typescript
 /** รายงานสรุปแชทกลุ่มประจำวัน (Workshop 4) */
@@ -707,7 +695,6 @@ export function flexDailySummary(input: {
 > 🎓 **ความจริงที่ต้องยอมรับ:** prompt เก่งแค่ไหนก็ตาม **ผู้จัดการฝ่ายไม่พิมพ์ prompt** เขาต้องการหน้าเว็บที่กดได้ ชุด workshop จึงมี Admin Dashboard ให้เป็นตัวอย่างระบบที่ส่งมอบได้จริง
 
 ```bash
-cd app
 npm run dev
 ```
 
@@ -749,7 +736,7 @@ npm run dev
 
 **2. AI มี fallback**
 
-ไฟล์ `app/src/services/summary.ts` ทำงาน 2 แบบ
+ไฟล์ `src/services/summary.ts` ทำงาน 2 แบบ
 
 ```
 มี ANTHROPIC_API_KEY ใน .env ?
@@ -811,7 +798,6 @@ npm run dev
 ### Part A: Import ฐานข้อมูลยอดขายจำลอง (5 นาที)
 
 ```bash
-cd app
 npm run seed:sales
 ```
 
@@ -874,7 +860,7 @@ sales_orders (
 | SO-ANOM-003 | ยอดติดลบ -12,500 (บันทึกคืนสินค้าผิดวิธี) | `amount < 0` ควรออกใบลดหนี้ ไม่ใช่ยอดขายติดลบ |
 | SO-ANOM-004/005 | รายการเดียวกันคีย์ซ้ำ 2 ครั้ง | GROUP BY สาขา/ช่องทาง/พนักงาน/ลูกค้า/สินค้า/จำนวน/ยอด HAVING COUNT(*) > 1 |
 
-**SQL จริงที่ชุด workshop ใช้ตรวจเกณฑ์ที่ 2 (ราคาต่อหน่วยผิดปกติ)** จากไฟล์ `app/src/services/sales.ts`
+**SQL จริงที่ชุด workshop ใช้ตรวจเกณฑ์ที่ 2 (ราคาต่อหน่วยผิดปกติ)** จากไฟล์ `src/services/sales.ts`
 
 ```sql
 WITH med AS (
@@ -922,46 +908,43 @@ HAVING COUNT(*) > 1
 
 ---
 
-### Part C: สร้างสคริปต์ daily-report (20 นาที)
+### Part C: อ่านสคริปต์ daily-report จากชุดไฟล์ (20 นาที)
 
-#### C1. Prompt สร้างสคริปต์
+#### C1. เปิดสคริปต์จริงมาไล่ทีละขั้น
 
-```
-สร้างสคริปต์ TypeScript ชื่อ scripts/daily-report.ts สำหรับส่งรายงานยอดขายเข้ากลุ่มไลน์ผู้บริหาร
-ไม่ใส่ semicolon เขียน comment ภาษาไทย
+เปิด 2 ไฟล์นี้คู่กัน
 
-สิ่งที่สคริปต์ต้องทำตามลำดับ
+| ไฟล์ | หน้าที่ |
+| --- | --- |
+| `scripts/daily-report.ts` | ทางเข้าของสคริปต์ อ่าน argument แล้วเรียกตรรกะ |
+| `src/jobs/dailyReport.ts` | ตรรกะจริง query + ตรวจ anomaly + ประกอบ Flex + ส่ง |
+
+**สิ่งที่สคริปต์ทำตามลำดับ ให้ไล่หาให้ครบทั้ง 7 ข้อ**
+
 1. รับ argument จาก command line
-   --date=YYYY-MM-DD   วันที่ของรายงาน (ค่าเริ่มต้น = เมื่อวาน)
-   --group=Cxxxx       groupId ปลายทาง (ถ้าไม่ใส่ให้อ่านจาก DEFAULT_GROUP_ID ใน .env)
-   --dry-run           ประกอบข้อความและ log แต่ไม่ส่งออกจริง
-2. query จาก PostgreSQL ตาราง sales_orders
-   - ยอดรวม จำนวนบิล ยอดเฉลี่ยต่อบิล ของวันที่ระบุ (ไม่นับ status cancelled)
-   - เทียบกับวันก่อนหน้าเป็นเปอร์เซ็นต์
-   - แยกตามสาขาและช่องทาง
-3. ตรวจรายการผิดปกติ 4 เกณฑ์: ยอดต่อบิลเกิน 300000, ราคาต่อหน่วยเกิน 3 เท่าของ median
-   ของสินค้าเดียวกัน, ยอดติดลบ, รายการซ้ำ
-4. ประกอบ Flex Message bubble ขนาด mega
-   - หัวสีน้ำเงินเข้ม #0C1628 หัวข้อ "รายงานยอดขายประจำวัน"
-   - ยอดรวมตัวใหญ่ พร้อมลูกศรขึ้น/ลงและเปอร์เซ็นต์เทียบวันก่อน
-   - ตารางสาขาและช่องทาง
-   - ถ้าพบรายการผิดปกติ ให้มีกล่องพื้นหลังแดงอ่อน ขอบแดง แจ้งรายการทั้งหมด
-     ถ้าไม่พบให้เป็นกล่องเขียวอ่อนบอกว่าไม่พบรายการผิดปกติ
-5. ส่งเข้ากลุ่มด้วย Push API ของ @line/bot-sdk (ไม่ใช่ MCP เพราะสคริปต์รันเองไม่มี AI)
+   - `--date=YYYY-MM-DD` วันที่ของรายงาน (ค่าเริ่มต้น = เมื่อวาน)
+   - `--group=Cxxxx` groupId ปลายทาง (ถ้าไม่ใส่จะอ่านจาก `DEFAULT_GROUP_ID` ใน `.env`)
+   - `--dry-run` ประกอบข้อความและ log แต่ไม่ส่งออกจริง
+2. query จากตาราง `sales_orders` หายอดรวม จำนวนบิล ยอดเฉลี่ยต่อบิล (ไม่นับ status `cancelled`) เทียบกับวันก่อนหน้าเป็นเปอร์เซ็นต์ และแยกตามสาขาและช่องทาง
+3. ตรวจรายการผิดปกติ 4 เกณฑ์ ยอดต่อบิลเกิน 300,000, ราคาต่อหน่วยเกิน 3 เท่าของ median ของสินค้าเดียวกัน, ยอดติดลบ, รายการซ้ำ
+4. ประกอบ Flex Message bubble ขนาด mega หัวสีน้ำเงินเข้ม `#0C1628` ยอดรวมตัวใหญ่พร้อมลูกศรขึ้น/ลง ตารางสาขาและช่องทาง และกล่องแดงอ่อนเมื่อพบรายการผิดปกติ (เขียวอ่อนเมื่อไม่พบ)
+5. ส่งเข้ากลุ่มด้วย **Push API ของ `@line/bot-sdk` ไม่ใช่ MCP**
 6. พิมพ์สรุปลง console ทุกครั้งเพื่อให้ตรวจ log ย้อนหลังได้
 7. ปิด connection pool และ exit code 0 เมื่อสำเร็จ / 1 เมื่อ error
 
-ข้อกำหนดสำคัญ
-- ค่าเกณฑ์ต่าง ๆ ต้องอ่านจาก .env ได้ ไม่ hard-code
-- ถ้าไม่พบข้อมูลของวันที่ระบุ ให้แจ้งและบอกวันที่ล่าสุดที่มีข้อมูล ไม่ใช่ crash
-- ต้องทดสอบด้วย --dry-run ได้โดยไม่ยิง API จริง
-```
+**3 จุดออกแบบที่ควรชี้ให้ดูในโค้ด**
+
+- ค่าเกณฑ์ anomaly ทุกตัวอ่านจาก `.env` ไม่ hard-code ทำให้แต่ละบริษัทปรับเกณฑ์เองได้โดยไม่ต้องแก้โค้ด
+- กรณีไม่พบข้อมูลของวันที่ระบุ จะคืนสถานะ `no-data` พร้อมบอกวันที่ล่าสุดที่มีข้อมูล แทนที่จะ crash
+- `--dry-run` ทำงานครบทุกขั้นยกเว้นการยิง API จริง จึงทดสอบได้โดยไม่กินโควต้าข้อความ
 
 > 🎓 **จุดสอนข้อ 5 ที่สำคัญมาก:** ทำไมสคริปต์ต้องใช้ **Push API ตรง ๆ ไม่ใช่ MCP**
 >
 > เพราะ MCP ต้องมี **AI Agent เป็นคนเรียก** แต่สคริปต์ที่รันตอนตี 8 โดย Task Scheduler ไม่มี AI นั่งอยู่ตรงนั้น งานประจำที่รูปแบบตายตัวจึงควรเป็นโค้ดธรรมดา เสถียรกว่า เร็วกว่า และไม่กินค่า token
 >
 > **AI Agent คือคนเขียนสคริปต์ให้ ไม่ใช่คนรันสคริปต์แทนทุกวัน**
+
+> 💡 **ให้ AI ช่วยอ่านโค้ดก็ได้:** เปิด `claude` ในโฟลเดอร์โปรเจกต์แล้วสั่งว่า *"อธิบาย `src/jobs/dailyReport.ts` ให้ฟังทีละขั้น โดยเฉพาะเกณฑ์ตรวจ anomaly ทั้ง 4 ข้อว่าคำนวณจากอะไร และมีเคสไหนที่จะ false positive"* นี่คือการใช้ AI แบบที่ได้ประโยชน์ที่สุดในงานจริง คือใช้ทำความเข้าใจโค้ดที่มีอยู่แล้ว ไม่ใช่ให้เขียนใหม่ทุกครั้ง
 
 #### C2. ทดสอบ (สำคัญ ห้ามข้าม)
 
@@ -999,7 +982,7 @@ npm run daily-report -- --group=<groupId ของกลุ่มผู้บร
   ---------------------------------------------
 ```
 
-> 💡 **เทียบกับ `app/scripts/daily-report.ts` และ `app/src/jobs/dailyReport.ts` ในชุด workshop** ว่า AI ของคุณคิดครบไหม โดยเฉพาะการจัดการกรณี "ไม่มีข้อมูลของวันที่ระบุ" ซึ่งโค้ดจริงจะคืนสถานะ `no-data` พร้อมบอกวันที่ล่าสุดที่มีข้อมูล แทนที่จะ crash
+> 💡 **ลองสั่ง `npm run daily-report -- --dry-run --date=2026-01-01`** (วันที่ที่ไม่มีข้อมูลแน่ ๆ) เพื่อดูว่าสคริปต์ตอบสถานะ `no-data` พร้อมบอกวันที่ล่าสุดที่มีข้อมูลจริงหรือไม่ นี่คือการทดสอบ edge case ที่โปรแกรมเมอร์มือใหม่มักลืม
 
 ---
 
@@ -1007,11 +990,11 @@ npm run daily-report -- --group=<groupId ของกลุ่มผู้บร
 
 #### D1. เตรียมไฟล์ .bat (Windows)
 
-สร้าง `app/run-daily-report.bat`
+สร้าง `run-daily-report.bat` ไว้ที่โฟลเดอร์รากของโปรเจกต์
 
 ```bat
 @echo off
-cd /d "C:\line-workshop-2026\app"
+cd /d "C:\line-workflow-app"
 call npm run daily-report -- --group=Cxxxxxxxxxxxxxxxxxxxx >> logs\daily-report.log 2>&1
 ```
 
@@ -1031,8 +1014,8 @@ call npm run daily-report -- --group=Cxxxxxxxxxxxxxxxxxxxx >> logs\daily-report.
    - Daily เวลา **08:00:00** ติ๊ก Enabled
 4. tab **Actions** > New
    - Action: Start a program
-   - Program/script: `C:\line-workshop-2026\app\run-daily-report.bat`
-   - Start in: `C:\line-workshop-2026\app`
+   - Program/script: `C:\line-workflow-app\run-daily-report.bat`
+   - Start in: `C:\line-workflow-app`
 5. tab **Conditions** > ปลดติ๊ก **Start the task only if the computer is on AC power** (สำหรับ notebook)
 6. tab **Settings** > ติ๊ก **Run task as soon as possible after a scheduled start is missed**
 7. บันทึก แล้วคลิกขวาที่ task > **Run** เพื่อทดสอบทันที
@@ -1053,7 +1036,7 @@ call npm run daily-report -- --group=Cxxxxxxxxxxxxxxxxxxxx >> logs\daily-report.
 | --- | --- | --- |
 | **Windows Task Scheduler** | เครื่องผู้ใช้ / เซิร์ฟเวอร์ Windows (ใช้ในคลาส) | ตามข้างบน |
 | **ตัวตั้งเวลาในตัวโปรแกรม** | deploy บน cloud ที่รันค้างตลอด เช่น Render Starter | ตั้ง `ENABLE_SCHEDULER=true` |
-| cron (macOS/Linux) | เซิร์ฟเวอร์ Linux ที่รันเอง | `0 8 * * * cd /path/app && npm run daily-report` |
+| cron (macOS/Linux) | เซิร์ฟเวอร์ Linux ที่รันเอง | `0 8 * * * cd /path/to/line-workflow-app && npm run daily-report` |
 | GitHub Actions | ไม่มีเซิร์ฟเวอร์เลย | `schedule: - cron: "0 1 * * *"` (UTC) |
 | **Claude Cowork / Claude Code Routines** | งานที่พึ่ง connector ล้วน ไม่แตะไฟล์หรือฐานข้อมูลในเครื่อง | สร้างจากหน้า **Scheduled** / **Routines** ในแอป หรือสั่ง Claude ด้วยภาษาพูด |
 
@@ -1281,7 +1264,7 @@ args = ["-y", "@modelcontextprotocol/server-postgres", "postgresql://postgres:�
 >
 > **ทำไมไม่ใช้ Postgres ฟรีของ Render:** แบบฟรีหมดอายุใน 30 วันแล้วข้อมูลถูกลบ ส่วน Neon ฟรีไม่มีวันหมดอายุ
 
-รายละเอียดทีละขั้นอยู่ใน `docs/10-Deployment-Render-Neon.md` และมี `app/render.yaml` (Blueprint) เตรียมไว้ให้แล้ว
+รายละเอียดทีละขั้นอยู่ใน `docs/10-Deployment-Render-Neon.md` และมี `render.yaml` (Blueprint) เตรียมไว้ให้แล้ว
 
 ---
 
@@ -1295,6 +1278,219 @@ args = ["-y", "@modelcontextprotocol/server-postgres", "postgresql://postgres:�
 | **ย้ายระบบขึ้น Cloud** | Render + Neon ตามคู่มือ | ★★ |
 | **เชื่อม MCP ตัวอื่น** | GitHub, Google Drive, Slack ใช้หลักการเดียวกันทุกประการ | ★★ |
 | **นโยบายลบข้อมูลอัตโนมัติ** | สคริปต์ลบข้อความเก่าเกิน 90 วัน ตั้งเวลารัน | ★ |
+| **เก็บรูปและไฟล์จากกลุ่ม** | ดึง content จาก LINE มาเก็บเอง ทำหน้าแกลเลอรีใน Dashboard (ดู Workshop 6) | ★★ |
+
+---
+
+## 📦 Workshop 6 (โมดูลเสริม): เก็บรูปและไฟล์เอกสารจากกลุ่มไว้ที่เซิร์ฟเวอร์ของเรา
+
+> **สถานะ:** โมดูลเสริม **ไม่อยู่ในกำหนดการหลัก** ใช้สอนเมื่อเวลาเหลือ หรือให้ผู้เรียนอ่านต่อเองหลังเลิกคลาส
+> **เวลาที่ใช้ถ้าสอนจริง:** ประมาณ 20-25 นาที
+> **ของที่ใช้:** ตาราง `media_files` และ view `v_media_gallery` ที่ `npm run db:setup` สร้างไว้ให้แล้วตั้งแต่ Workshop 3
+
+---
+
+### 6.1 ทำไมต้องเก็บไฟล์ไว้เอง
+
+Workshop 3 เราเก็บได้แค่ **metadata** ของรูปและไฟล์ (รู้ว่าใครส่ง เมื่อไร ประเภทอะไร) แต่ตัวไฟล์จริงยังอยู่บนเซิร์ฟเวอร์ของ LINE ซึ่งมีปัญหา 2 ข้อ
+
+```
+ปัญหาข้อ 1: LINE ลบไฟล์ทิ้งเมื่อผ่านไประยะหนึ่ง
+            เอกสารทางการระบุว่า "Content is automatically deleted after
+            a certain period from when the message was sent.
+            There is no guarantee for how long content is stored."
+            คือ LINE ไม่รับประกันและไม่ประกาศระยะเวลาที่แน่นอน
+
+ปัญหาข้อ 2: ไม่มีทางค้นย้อนหลังได้
+            ใบเสร็จที่ทีมส่งเข้ากลุ่มเมื่อ 3 เดือนก่อน หาไม่เจอแล้ว
+            ต้องเลื่อนหาในแชทมือถือทีละหน้า
+```
+
+> 🎓 **จุดสอน:** นี่คือหลักคิดเดียวกับ Module 3 ทั้งวัน คือ **"เมื่อ API ปลายทางไม่ให้สิ่งที่เราต้องการ ให้เปลี่ยนจากดึงเมื่อต้องใช้ เป็นรับไว้ตั้งแต่ต้น"** ข้อความเราทำไปแล้วใน Workshop 3 ส่วนไฟล์คือของที่เหลือ
+
+---
+
+### 6.2 กลไกการดึงไฟล์ (Get content)
+
+**สิ่งที่ดึงได้และไม่ได้**
+
+| ประเภท | ดึงไฟล์จริงได้ไหม | หมายเหตุ |
+| --- | --- | --- |
+| `image` | ✅ | ได้ทั้งภาพต้นฉบับและภาพย่อ (preview) |
+| `video` | ✅ | ไฟล์ใหญ่อาจต้องรอ LINE เตรียมข้อมูลก่อน |
+| `audio` | ✅ | เหมือน video |
+| `file` | ✅ | PDF, Excel, Word ที่ผู้ใช้ส่งเข้ากลุ่ม |
+| `sticker` | ❌ | ไม่ใช่ content ที่ผู้ใช้ส่ง เก็บได้แค่ `stickerId` / `packageId` |
+| `text` | ❌ | **ไม่มี API ดึงข้อความย้อนหลัง** ต้องเก็บตอนรับ webhook เท่านั้น |
+| `location` | ❌ | เก็บ latitude/longitude จาก webhook ได้เลย ไม่ต้องดึง |
+
+> ⚠️ **เงื่อนไขสำคัญ:** ดึงได้เฉพาะเมื่อ `contentProvider.type` ใน webhook event เป็น `line` เท่านั้น ถ้าเป็น `external` แปลว่าไฟล์อยู่ URL ภายนอก LINE ไม่ได้เก็บให้ ต้องอ่านจาก `contentProvider.originalContentUrl` เอง
+
+**Endpoint ที่ใช้ (สังเกตว่าคนละโดเมนกับ API ตัวอื่น)**
+
+```bash
+# ไฟล์ต้นฉบับ
+curl -X GET https://api-data.line.me/v2/bot/message/{messageId}/content \
+  -H 'Authorization: Bearer {channel access token}'
+
+# ภาพย่อ (เล็กกว่ามาก เหมาะทำ thumbnail)
+curl -X GET https://api-data.line.me/v2/bot/message/{messageId}/content/preview \
+  -H 'Authorization: Bearer {channel access token}'
+
+# เช็คว่า video/audio ไฟล์ใหญ่พร้อมให้ดึงหรือยัง
+curl -X GET https://api-data.line.me/v2/bot/message/{messageId}/content/transcoding \
+  -H 'Authorization: Bearer {channel access token}'
+```
+
+> ⚠️ **จุดที่พลาดกันบ่อยที่สุด:** โดเมนคือ **`api-data.line.me`** ไม่ใช่ `api.line.me` เพราะ LINE แยกโดเมนสำหรับรับส่งข้อมูลก้อนใหญ่ ถ้าใช้โดเมนผิดจะได้ 404 ทั้งที่ token ถูก
+
+**ฝั่งโค้ดใช้ blob client ของ SDK** (ดูที่ `src/line/client.ts`)
+
+```typescript
+import { messagingApi } from '@line/bot-sdk'
+
+// blob client คนละตัวกับ MessagingApiClient ปกติ เพราะชี้ไปคนละโดเมน
+const blobClient = new messagingApi.MessagingApiBlobClient({
+  channelAccessToken: config.channelAccessToken
+})
+
+// คืนค่าเป็น Readable stream ไม่ใช่ Buffer
+// จึงเขียนลงไฟล์แบบ stream ได้เลย ไม่กินหน่วยความจำแม้ไฟล์ใหญ่
+const stream = await blobClient.getMessageContent(messageId)
+```
+
+---
+
+### 6.3 เก็บไว้ที่ไหนและตั้งชื่ออย่างไร
+
+**สิ่งที่ห้ามทำ**
+
+```
+❌ เก็บด้วยชื่อไฟล์เดิมที่ผู้ใช้ส่งมา  ->  ชื่อซ้ำกันได้ และเสี่ยง path traversal
+❌ เก็บ binary ลงคอลัมน์ในฐานข้อมูล   ->  ฐานข้อมูลบวมเร็วมาก backup ช้า
+❌ วางไฟล์ในโฟลเดอร์ที่ Express serve เป็น static  ->  ใครเดา URL ถูกก็เปิดดูได้
+```
+
+**สิ่งที่ควรทำ** เก็บไฟล์นอกฐานข้อมูล แล้วให้ฐานข้อมูลเก็บแค่ **ตัวชี้** ซึ่งก็คือคอลัมน์ `storage_key` ในตาราง `media_files`
+
+```
+storage/
+  2026/
+    08/
+      15/
+        <lineMessageId>.jpg      <-- ใช้ lineMessageId เป็นชื่อ เพราะ unique อยู่แล้ว
+        <lineMessageId>.pdf
+```
+
+| คอลัมน์ใน `media_files` | เก็บอะไร |
+| --- | --- |
+| `line_message_id` | UNIQUE กันดึงไฟล์เดิมซ้ำเมื่อ LINE retry (หลักการเดียวกับ `line_messages`) |
+| `storage_key` | พาธสัมพัทธ์ เช่น `2026/08/15/5551....jpg` **ไม่เก็บ absolute path** เพื่อให้ย้ายที่เก็บได้ |
+| `caption` | ชื่อไฟล์เดิมที่ผู้ใช้ส่ง (`message.fileName`) ไว้แสดงให้คนอ่าน ไม่ใช้เป็นชื่อไฟล์จริง |
+| `status` | `pending` / `stored` / `failed` / `deleted` |
+
+> 🎓 **จุดสอนเรื่อง `status`:** ทำไมต้องมี ไม่บันทึกเฉพาะที่สำเร็จไปเลย เพราะการดึงไฟล์เกิดหลังจากเราตอบ 200 ไปแล้ว ถ้าดึงพลาดกลางทางเราต้องรู้ว่า "เคยมีไฟล์นี้แต่ดึงไม่ได้" ไม่ใช่หายเงียบ และ view `v_media_gallery` จึงกรองเฉพาะ `status = 'stored'` เพื่อไม่ให้แถวที่ยังไม่พร้อมโผล่ในหน้าแกลเลอรี
+
+**ขึ้น production ควรย้ายไป object storage**
+
+| ที่เก็บ | เหมาะกับ | ข้อควรระวัง |
+| --- | --- | --- |
+| Local disk | คลาสนี้ / เซิร์ฟเวอร์ในองค์กรที่ควบคุมเอง | ต้องมีแผน backup และดูพื้นที่ให้พอ |
+| S3 / Cloudflare R2 / Google Cloud Storage | ระบบจริงที่มีผู้ใช้หลายคน | `storage_key` ยังใช้รูปแบบเดิมได้ เปลี่ยนแค่โค้ดชั้นเขียนไฟล์ |
+| ❌ ดิสก์ของ Render / Railway แบบ ephemeral | ไม่เหมาะ | ไฟล์หายทุกครั้งที่ deploy ใหม่ |
+
+---
+
+### 6.4 ลำดับการทำงานที่ถูกต้อง
+
+```
+LINE ส่ง event type=message, message.type=image เข้ามา
+        │
+        ▼
+1. ตอบ 200 ทันที                          <-- กฎเหล็กข้อ 1 ยังใช้เหมือนเดิม
+        │
+        ▼
+2. INSERT line_messages (metadata)         <-- ได้ข้อมูลไว้ก่อน แม้ไฟล์จะดึงไม่สำเร็จ
+        │
+        ▼
+3. INSERT media_files status='pending'
+        │
+        ▼
+4. เช็ค contentProvider.type === 'line'    <-- ถ้า external ข้ามไป
+        │
+        ▼
+5. blobClient.getMessageContent(messageId)
+   pipe ลงไฟล์ storage/YYYY/MM/DD/<id>.<ext>
+        │
+        ├── สำเร็จ  -> UPDATE status='stored', storage_key=...
+        └── ล้มเหลว -> UPDATE status='failed' + log เหตุผล (ไม่ throw)
+```
+
+**Error ที่ต้องแยกให้ออก**
+
+| สถานะ | ความหมาย | ควรทำอย่างไร |
+| --- | --- | --- |
+| `202 Accepted` | video/audio ไฟล์ใหญ่ LINE ยังเตรียมข้อมูลไม่เสร็จ | **ไม่ใช่ error** ให้เช็คด้วย endpoint `/content/transcoding` แล้วค่อยลองใหม่ |
+| `404 Not Found` | messageId ไม่มีอยู่จริง | ตรวจว่าส่ง id ถูกตัวหรือไม่ |
+| `410 Gone` | ผู้ใช้ **unsend** ข้อความนั้นไปแล้ว | ห้าม retry และควรลบ metadata ที่เก็บไว้ด้วย (ดูหัวข้อ 6.6) |
+
+> ⚠️ **อย่าตั้ง retry แบบวนไม่จำกัด** ทั้ง 404 และ 410 คือ "ไม่มีทางสำเร็จ" การ retry ซ้ำมีแต่กินโควต้าและ rate limit ให้ retry เฉพาะกรณี 202 และ network error เท่านั้น และควรจำกัดจำนวนครั้ง
+
+---
+
+### 6.5 แสดงผลใน Admin Dashboard
+
+view `v_media_gallery` join `media_files` กับ `line_groups` ให้แล้ว และกรองเฉพาะ `status = 'stored'` จึง query ตรงได้เลย
+
+```sql
+SELECT * FROM v_media_gallery
+WHERE group_name = 'ทีมปฏิบัติการ'
+  AND sent_at >= now() - interval '30 days'
+ORDER BY sent_at DESC
+```
+
+**สอง endpoint ที่ต้องมี**
+
+| เส้นทาง | ทำอะไร |
+| --- | --- |
+| `GET /admin/media` | หน้าแกลเลอรี แสดง thumbnail + ชื่อกลุ่ม + ผู้ส่ง + วันเวลา |
+| `GET /admin/media/:id/file` | ส่งไฟล์จริงออกไป **หลังตรวจ session แล้วเท่านั้น** |
+
+> ⚠️ **จุดออกแบบด้านความปลอดภัยที่สำคัญที่สุดของหัวข้อนี้:** ห้าม `app.use('/storage', express.static(...))` เพราะเท่ากับเปิดไฟล์ทั้งหมดให้ทุกคนที่รู้ URL ต้องให้ไฟล์ผ่าน route ที่ตรวจ session ก่อน แล้วจึงอ่านจากดิสก์ส่งออกไป
+>
+> และเมื่อประกอบพาธจาก `storage_key` ที่มาจากฐานข้อมูล ให้ตรวจด้วยเสมอว่าพาธผลลัพธ์ยังอยู่ใต้โฟลเดอร์ `storage/` จริง (ป้องกัน path traversal ในกรณีที่ข้อมูลถูกแก้)
+
+> 💡 **ต่อยอดได้น่าสนใจ:** เมื่อมีไฟล์อยู่ในมือแล้ว สั่ง AI ผ่าน Postgres MCP ว่า *"เดือนนี้กลุ่มไหนส่งไฟล์เข้ามามากที่สุด และเป็นไฟล์ประเภทอะไรบ้าง"* ได้ทันที หรือถ้าต่อ OCR เข้าไปก็อ่านใบเสร็จที่ทีมส่งเข้ากลุ่มมาสรุปยอดได้
+
+---
+
+### 6.6 PDPA และ Governance (หัวข้อที่ห้ามข้าม)
+
+การเก็บ **ข้อความ** จากกลุ่มมีความเสี่ยงระดับหนึ่ง แต่การเก็บ **ไฟล์** เสี่ยงกว่ามาก เพราะรูปที่คนส่งเข้ากลุ่มงานมักมีบัตรประชาชน สลิปโอนเงิน ใบเสร็จที่มีเลขบัญชี หรือเอกสารสัญญาปนอยู่โดยที่ผู้ส่งไม่ได้ตั้งใจให้ถูกเก็บถาวร
+
+**หกข้อที่ต้องทำก่อนเปิดใช้จริงในองค์กร**
+
+| # | สิ่งที่ต้องทำ | เหตุผล |
+| --- | --- | --- |
+| 1 | **แจ้งและขอความยินยอมให้ชัดว่า "เก็บไฟล์ด้วย"** | ข้อความ `join` ใน Workshop 3 บอกแค่ว่าบันทึกบทสนทนา ถ้าจะเก็บไฟล์ต้องเพิ่มประโยคนี้เข้าไป |
+| 2 | **รองรับ unsend event ให้ครบ** | เอกสาร LINE ระบุตรง ๆ ว่าเมื่อผู้ใช้ unsend ให้ผู้ให้บริการเคารพเจตนา และ *"Delete the target message stored in a database or other storage device"* คือต้องลบทั้งแถวในฐานข้อมูล **และไฟล์บนดิสก์** |
+| 3 | **ตั้ง retention policy** | เช่นลบไฟล์อายุเกิน 90 วันอัตโนมัติ ใช้ Task Scheduler ตัวเดียวกับ Workshop 5 ได้เลย เก็บเท่าที่จำเป็นต่อวัตถุประสงค์ |
+| 4 | **จำกัดสิทธิ์เข้าถึง** | Dashboard ต้องล็อกอิน และควรแยกสิทธิ์ว่าใครดูไฟล์ของกลุ่มไหนได้ ไม่ใช่ล็อกอินแล้วเห็นทุกกลุ่ม |
+| 5 | **เก็บ log ว่าใครเปิดดูไฟล์ไหนเมื่อไร** | ถ้าข้อมูลรั่ว ต้องตอบให้ได้ว่าเกิดจากทางไหน ตาราง `message_logs` มีแนวคิดนี้อยู่แล้ว ทำแบบเดียวกันกับฝั่งอ่านไฟล์ |
+| 6 | **กำหนดผู้รับผิดชอบข้อมูล** | ต้องมีคนที่ตอบได้ว่าเก็บอะไร เก็บนานเท่าไร ลบอย่างไร และใครเข้าถึงได้บ้าง |
+
+> ⚠️ **ข้อแนะนำที่ตรงไปตรงมาที่สุด:** ถ้ายังไม่มีเหตุผลทางธุรกิจที่ชัดเจนว่าต้องเก็บไฟล์ไว้ทำอะไร **อย่าเพิ่งเปิดใช้** เก็บเฉพาะ metadata แบบ Workshop 3 มีความเสี่ยงต่ำกว่ามาก และตอบโจทย์งานสรุปประชุมกับติดตามงานได้ครบอยู่แล้ว การเก็บข้อมูลที่ไม่ได้ใช้คือหนี้สิน ไม่ใช่สินทรัพย์
+
+---
+
+### ✅ Checkpoint Workshop 6
+
+- [ ] อธิบายได้ว่าทำไม `api-data.line.me` ถึงคนละโดเมนกับ `api.line.me`
+- [ ] บอกได้ว่าประเภทไหนดึงไฟล์จริงได้ ประเภทไหนได้แค่ metadata
+- [ ] แยกความหมายของ `202` / `404` / `410` ได้ และรู้ว่าเคสไหนห้าม retry
+- [ ] `SELECT * FROM v_media_gallery` แล้วเห็นแถวที่ `status = 'stored'`
+- [ ] เปิดไฟล์ผ่าน Dashboard ได้ และยืนยันว่าเปิดตรง URL โดยไม่ล็อกอินไม่ได้
+- [ ] อธิบายได้ว่าเมื่อได้ unsend event ต้องทำอะไรกับทั้งฐานข้อมูลและไฟล์
 
 ---
 
@@ -1310,10 +1506,16 @@ args = ["-y", "@modelcontextprotocol/server-postgres", "postgresql://postgres:�
 | ได้ log แต่ไม่เข้าฐานข้อมูล | ดู log ฝั่ง server มักเป็น `DATABASE_URL` ผิดหรือยังไม่ได้รัน `npm run db:setup` |
 | ข้อความเข้าซ้ำในตาราง | LINE retry ได้เป็นปกติ ตรวจว่ามี `ON CONFLICT (line_message_id) DO NOTHING` แล้ว |
 | LINE หยุดส่ง event มาให้เอง | webhook ตอบ error ซ้ำ ๆ ต้องแก้ให้ตอบ 200 เสมอ แล้วกด Verify ใหม่ |
-| `cloudflared` ไม่ใช่คำสั่งที่รู้จัก | ยังไม่ได้ใส่ใน PATH หรือไม่ได้เปลี่ยนชื่อไฟล์เป็น `cloudflared.exe` |
-| cloudflared ขึ้น `failed to sufficiently increase receive buffer size` | เป็นแค่คำเตือน ไม่ใช่ error ใช้งานต่อได้ |
-| cloudflared ต่อไม่ได้เลย (เครือข่ายบริษัทบล็อก) | สำรองตามลำดับ: `ngrok http 3000` > `npx localtunnel --port 3000` > `ssh -R 80:localhost:3000 nokey@localhost.run` |
+| `ngrok` ไม่ใช่คำสั่งที่รู้จัก | ยังไม่ได้ใส่ใน PATH หรือแตกไฟล์ `ngrok.exe` ไว้คนละที่ ให้เปิด terminal ใหม่หลังติดตั้ง |
+| ngrok ขึ้น `authentication failed` / `ERR_NGROK_4018` | ยังไม่ได้ผูก authtoken รัน `ngrok config add-authtoken <token>` แล้วสั่งใหม่ |
+| ngrok ขึ้น `ERR_NGROK_108` (limited to 1 simultaneous session) | มี ngrok ค้างอยู่อีกหน้าต่าง ให้ปิด process เดิม หรือกด Stop ที่ Agents ในหน้า dashboard |
+| เปิด URL แล้วเจอหน้าเตือนของ ngrok ก่อนเข้า | เป็นหน้า interstitial ของแพลนฟรี ไม่กระทบ Webhook เพราะ LINE ยิงแบบ POST ถ้าอยากปิดให้เพิ่ม header `ngrok-skip-browser-warning` ตอนทดสอบด้วยเบราว์เซอร์ |
+| ngrok ต่อไม่ได้เลย (เครือข่ายบริษัทบล็อก) | ลองต่อผ่านเครือข่ายมือถือ (hotspot) ก่อน ถ้ายังไม่ได้ให้ใช้ตัวสำรอง `npx localtunnel --port 3000` หรือ `ssh -R 80:localhost:3000 nokey@localhost.run` |
+| อยากรู้ว่า LINE ยิงอะไรมาบ้าง | เปิด http://127.0.0.1:4040 (ngrok Web Inspector) ดู request/response ย้อนหลังได้ทุกครั้ง |
 | ข้อความเก่าก่อนบอทเข้ากลุ่มไม่เข้าระบบ | **ไม่ใช่บั๊ก** Messaging API ออกแบบมาอย่างนี้ |
+| ดึงรูป/ไฟล์แล้วได้ 404 ทั้งที่ token ถูก | ใช้โดเมนผิด ต้องเป็น `api-data.line.me` ไม่ใช่ `api.line.me` (ดู Workshop 6) |
+| ดึงไฟล์แล้วได้ `410 Gone` | ผู้ใช้ unsend ข้อความไปแล้ว ห้าม retry และควรลบ metadata ที่เก็บไว้ด้วย |
+| ดึง video/audio แล้วได้ `202` | LINE ยังเตรียมไฟล์ไม่เสร็จ ไม่ใช่ error ให้เช็ค endpoint `/content/transcoding` ก่อนลองใหม่ |
 
 ### กลุ่ม 2: PostgreSQL
 
@@ -1350,9 +1552,10 @@ args = ["-y", "@modelcontextprotocol/server-postgres", "postgresql://postgres:�
 | หัวข้อ | สิ่งที่ทำได้แล้ว |
 | --- | --- |
 | Module 3 - สถาปัตยกรรม | อธิบายสถาปัตยกรรม 4 ส่วนได้ และแยกงาน ad-hoc ออกจากงานประจำเป็น |
-| ★ Workshop 3 - Group Chat Recorder | สร้าง Webhook Server ด้วย AI เก็บแชทกลุ่มลง PostgreSQL ได้จริง เปิด tunnel และตั้ง Webhook URL เป็น |
+| ★ Workshop 3 - Group Chat Recorder | อ่านโค้ด Webhook Server เป็น เก็บแชทกลุ่มลง PostgreSQL ได้จริง เปิด tunnel และตั้ง Webhook URL เป็น |
 | ★ Workshop 4 - AI สรุป + Dashboard | เชื่อม Postgres MCP วิเคราะห์บทสนทนาด้วยภาษาไทย ส่งสรุปกลับเข้ากลุ่มเป็น Flex และใช้ Dashboard เป็น |
-| ★ Workshop 5 - Capstone | สร้างสคริปต์ daily-report ตรวจ anomaly 4 เกณฑ์ และตั้งเวลารันอัตโนมัติทุกเช้าได้ |
+| ★ Workshop 5 - Capstone | ใช้สคริปต์ daily-report ตรวจ anomaly 4 เกณฑ์ และตั้งเวลารันอัตโนมัติทุกเช้าได้ |
+| Workshop 6 (เสริม) - เก็บไฟล์จากกลุ่ม | ดึงรูปและไฟล์เอกสารมาเก็บที่เซิร์ฟเวอร์เราเอง พร้อมข้อควรระวังด้าน PDPA |
 | Module 4 - Governance | รู้แนวปฏิบัติด้าน Privacy สิทธิ์ฐานข้อมูล และสิ่งที่ต้องเพิ่มก่อนขึ้น production |
 
 ### 🔑 ห้าประโยคที่ต้องจำจากทั้งหลักสูตร
@@ -1381,6 +1584,7 @@ args = ["-y", "@modelcontextprotocol/server-postgres", "postgresql://postgres:�
 | --- | --- |
 | LINE Messaging API - Receiving messages (Webhook) | https://developers.line.biz/en/docs/messaging-api/receiving-messages/ |
 | LINE Messaging API - Group chats | https://developers.line.biz/en/docs/messaging-api/group-chats/ |
+| LINE Messaging API - Get content (ดึงรูป/ไฟล์ที่ผู้ใช้ส่ง) | https://developers.line.biz/en/reference/messaging-api/#get-content |
 | @line/bot-sdk (Node.js) | https://github.com/line/line-bot-sdk-nodejs |
 | LINE Bot MCP Server (Official) | https://github.com/line/line-bot-mcp-server |
 | LINE Flex Message Simulator | https://developers.line.biz/flex-simulator/ |
@@ -1388,10 +1592,10 @@ args = ["-y", "@modelcontextprotocol/server-postgres", "postgresql://postgres:�
 | Claude Code - MCP | https://docs.claude.com/en/docs/claude-code/mcp |
 | OpenAI Codex CLI | https://developers.openai.com/codex/cli/ |
 | PostgreSQL 16 Documentation | https://www.postgresql.org/docs/16/ |
-| Cloudflare Tunnel | https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/ |
+| ngrok Documentation | https://ngrok.com/docs/ |
 | Schedule recurring tasks in Claude Cowork | https://support.claude.com/en/articles/13854387-schedule-recurring-tasks-in-claude-cowork |
 | Schedule recurring tasks in Claude Code Desktop | https://code.claude.com/docs/en/desktop-scheduled-tasks |
-| repo อ้างอิงของหลักสูตร | https://github.com/iamsamitdev/line-chat-recorder |
+| repo อ้างอิงของหลักสูตร | https://github.com/iamsamitdev/line-workflow-app |
 
 ---
 

@@ -65,7 +65,7 @@ claude --version
 ### Clone ชุดไฟล์ workshop จาก GitHub
 
 ```bash
-git clone https://github.com/iamsamitdev/line-workflow-workshop-2026.git
+git clone https://github.com/iamsamitdev/line-workflow-app.git
 ```
 
 ### 🌿 สลับชุดไฟล์ให้ตรงกับวันที่เรียน
@@ -73,7 +73,7 @@ git clone https://github.com/iamsamitdev/line-workflow-workshop-2026.git
 ชุดไฟล์ workshop แบ่ง git branch ตามวันอบรม โดยโค้ดต่อยอดกันเป็นเส้นเดียว **วันนี้ให้ทุกคนอยู่ที่สาขา `day1`**
 
 ```bash
-cd line-workflow-workshop-2026
+cd line-workflow-app
 git checkout day1
 ```
 
@@ -571,9 +571,9 @@ altText ให้เป็น "ประกาศรับสมัครงา�
 1. **Carousel 3 ใบ** - ให้ AI ส่ง Flex แบบ carousel ที่มี 3 bubble คือประกาศ 3 เรื่องเรียงกัน
 2. **Postback action** - ให้ AI สร้าง Flex ที่มีปุ่มแบบ `postback` แล้วถามต่อว่า "ถ้าจะรับค่าที่ผู้ใช้กดต้องมีอะไรเพิ่ม"
    *(คำตอบ: ต้องมี Webhook Server ซึ่งเราจะสร้างกันในวันที่ 2 นี่คือสะพานเชื่อมไปวันพรุ่งนี้)*
-3. **เทียบกับโค้ดจริง** - ให้ AI เขียนฟังก์ชัน TypeScript ที่ประกอบ Flex ประกาศ HR จาก object พารามิเตอร์ แล้วเปิดไฟล์ `app/src/services/flex.ts` ในชุดไฟล์ workshop มาเทียบว่าคิดเหมือนหรือต่างกันอย่างไร
+3. **เทียบกับโค้ดจริง** - ให้ AI เขียนฟังก์ชัน TypeScript ที่ประกอบ Flex ประกาศ HR จาก object พารามิเตอร์ แล้วเปิดไฟล์ `src/services/flex.ts` ในชุดไฟล์ workshop มาเทียบว่าคิดเหมือนหรือต่างกันอย่างไร
 
-**ตัวอย่างแนวทางที่ชุด workshop ใช้ (จาก `app/src/services/flex.ts`)**
+**ตัวอย่างแนวทางที่ชุด workshop ใช้ (จาก `src/services/flex.ts`)**
 
 ```typescript
 // แยกส่วนที่ใช้ซ้ำออกมาเป็นฟังก์ชันเล็ก ๆ แทนที่จะเขียน JSON ก้อนใหญ่ทีเดียว
@@ -1381,7 +1381,7 @@ Claude Code ──MCP──► LINE            LINE ──Webhook──► เ�
 
 ```bash
 # ทางที่ 1: มี Docker Desktop อยู่แล้ว (เร็วที่สุด)
-cd app
+cd line-workflow-app
 docker compose up -d
 docker compose ps          # ต้องเห็นสถานะ healthy
 
@@ -1390,26 +1390,31 @@ psql --version
 psql -U postgres -c "CREATE DATABASE linechat;"
 ```
 
-**2. ติดตั้ง cloudflared (Cloudflare Tunnel)**
+**2. ติดตั้ง ngrok**
 
 ```bash
 # Windows
-winget install --id Cloudflare.cloudflared
+winget install --id ngrok.ngrok
 # macOS
-brew install cloudflared
+brew install ngrok
 
-cloudflared --version
+ngrok --version
 ```
 
-> 💡 **ทำไมใช้ cloudflared ไม่ใช่ ngrok:** ต้นปี 2026 ngrok ตัดแพลนฟรีเหลือ session ละ 2 ชั่วโมง จะหลุดกลางคลาส ส่วน cloudflared ยังฟรีไม่จำกัดและไม่ต้องสมัครบัญชี
+จากนั้นสมัครบัญชีฟรีที่ https://dashboard.ngrok.com แล้วคัดลอก Authtoken มาผูกกับเครื่องหนึ่งครั้ง
+
+```bash
+ngrok config add-authtoken <AUTHTOKEN_ของคุณ>
+```
+
+> 💡 **ทำไมใช้ ngrok:** ติดตั้งง่าย มี Web Inspector ที่ http://127.0.0.1:4040 ให้ดู request ที่ LINE ยิงเข้ามาแบบเห็นทั้ง header และ body ซึ่งช่วยดีบัก Webhook ได้เร็วมากในคลาส
 
 **3. สลับไปสาขา `day2` แล้วทดสอบว่าชุดไฟล์รันได้**
 
 ```bash
-cd line-workflow-workshop-2026
+cd line-workflow-app
 git checkout day2             # ★ ของวันพรุ่งนี้อยู่สาขานี้
 
-cd app
 npm install                   # ★ ต้องรันซ้ำ เพราะวันที่สองใช้แพ็กเกจเพิ่ม
 copy .env.example .env        # Windows (macOS/Linux ใช้ cp)
 npm run db:setup              # ต้องขึ้น "พร้อมใช้งาน"
@@ -1436,7 +1441,7 @@ npm run dev                   # ต้องเปิด http://localhost:3000 �
 - [ ] `git branch --show-current` ขึ้นว่า `day2` แล้ว
 - [ ] `/mcp` ยังขึ้น line-bot connected
 - [ ] PostgreSQL ต่อได้ (`npm run db:setup` ผ่าน)
-- [ ] `cloudflared --version` ทำงาน
+- [ ] `ngrok --version` ทำงาน และผูก authtoken แล้ว
 - [ ] มีไลน์กลุ่มทดสอบพร้อมสมาชิก 3-4 คน
 - [ ] เปิด http://localhost:3000 แล้วเห็น Dashboard
 
@@ -1654,7 +1659,7 @@ NPM_CONFIG_IGNORE_SCRIPTS = "true"
 | Codex - Config basics (config.toml) | https://learn.chatgpt.com/docs/config-file/config-basic |
 | Codex - Environment Variables | https://learn.chatgpt.com/docs/config-file/environment-variables |
 | OpenAI Codex - MCP documentation | https://developers.openai.com/codex/mcp |
-| repo อ้างอิงของหลักสูตร | https://github.com/iamsamitdev/line-chat-recorder |
+| repo อ้างอิงของหลักสูตร | https://github.com/iamsamitdev/line-workflow-app |
 
 ---
 
